@@ -1,0 +1,46 @@
+# used in
+# https://gitlab.com/redhat/centos-stream/rpms/scrub
+
+summary: package update scenario
+
+adjust:
+  - when: distro == centos-stream-10
+    enabled: false
+    because: we want to run this plan only for rhel distros
+  - when: distro == centos-stream-9
+    enabled: false
+    because: we want to run this plan only for rhel distros
+
+execute:
+    how: tmt
+
+prepare:
+  - how: shell
+    order: 90
+    script:
+      # remove installed (tested) scrub and any leftovers
+      - dnf -y remove '*scrub*'
+      # install older scrub
+      - dnf -y install scrub --disablerepo test-artifacts
+
+discover:
+  - name: Pre_update_tests
+    how: fmf
+    url: https://gitlab.cee.redhat.com/special-projects/tests/scrub
+    ref: master
+    test:
+      - /Sanity/scrub-basic-sanity
+
+  - name: Update_scrub_package
+    how: shell
+    tests:
+      - name: scrub_update
+        test: dnf -y update '*scrub*'
+        duration: 2m
+
+  - name: Post_update_tests
+    how: fmf
+    url: https://gitlab.cee.redhat.com/special-projects/tests/scrub
+    ref: master
+    test:
+      - /Sanity/scrub-basic-sanity
